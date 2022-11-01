@@ -16,9 +16,10 @@ class ButterflyNet(object):
 
         # baseline size is based on 2K definition (2560*1440)
         self.scale_factor = monitor_def[1] / 1440
+        self.zoom_factor = 256 / self.n_port
         # horizontal and vertical margin of the (0, 0) switch node
         self.H_margin = 6.0
-        self.V_margin = 2.0
+        self.V_margin = 1.0
 
         self.get_all_size()
         self.get_all_coordinates()
@@ -32,14 +33,14 @@ class ButterflyNet(object):
         '''
         Get size(float) of canvas, switch nodes, spacing, line segments etc
         '''
-        self.TNode_height = 0.8 * self.scale_factor
-        self.TNode_vspace = 0.18 * self.scale_factor
+        self.TNode_height = 0.8 * self.scale_factor * self.zoom_factor
+        self.TNode_vspace = 0.18 * self.scale_factor * self.zoom_factor
         
-        self.FNode_height = 1.6 * self.scale_factor
-        self.FNode_vspace = 0.36 * self.scale_factor
+        self.FNode_height = 1.6 * self.scale_factor * self.zoom_factor
+        self.FNode_vspace = 0.36 * self.scale_factor * self.zoom_factor
         
-        self.Node_width = 1.6
-        self.Node_hspace = 25.6 * self.scale_factor
+        self.Node_width = 1.2 * (8 / self.n_stage)
+        self.Node_hspace = 24.4 * self.scale_factor * (8 / self.n_stage)
 
 
     def get_all_coordinates(self):
@@ -48,7 +49,6 @@ class ButterflyNet(object):
         '''
         # set the coordinate of the (0, 0) switch node
         x0 = self.H_margin + self.Node_width/2
-        y0 = self.V_margin + (self.TNode_height/2 if self.type_list[0] == 2 else self.FNode_height/2)
 
         '''
         Create dictionary to record the coordinate of the central point
@@ -59,11 +59,12 @@ class ButterflyNet(object):
         for i in range(self.n_stage):
             # switch node travseral: stage i, j_th node
             n_nodes = self.n_port // self.type_list[i]
-            
+            y0 = self.V_margin + (self.TNode_height/2 if self.type_list[i] == 2 else self.FNode_height/2)
+
             for j in range(n_nodes):
                 x = x0 + i * self.Node_hspace
                 if self.type_list[i] == 2:
-                    y = y0 + j * (self.TNode_height+self.TNode_vspace)
+                    y = y0 + j * self.TNode_height + j//2 * self.FNode_vspace
                 else:
                     y = y0 + j * (self.FNode_height+self.FNode_vspace)
 
@@ -71,6 +72,8 @@ class ButterflyNet(object):
 
 
         hw = self.Node_width / 2
+        z = self.zoom_factor
+
         hqw = hw * 1.5
         '''
         Create dictionary to record the coordinate of the input pins
@@ -90,13 +93,13 @@ class ButterflyNet(object):
                 self.dict_input_pin_coord[(i, j)] = []
                 
                 if self.type_list[i] == 2:
-                    self.dict_input_pin_coord[(i, j)].append((x, yj - 0.2*self.scale_factor))
-                    self.dict_input_pin_coord[(i, j)].append((x, yj + 0.2*self.scale_factor))
+                    self.dict_input_pin_coord[(i, j)].append((x, yj - 0.2*z*self.scale_factor))
+                    self.dict_input_pin_coord[(i, j)].append((x, yj + 0.2*z*self.scale_factor))
                 else:
-                    self.dict_input_pin_coord[(i, j)].append((x, yj - 0.6*self.scale_factor))
-                    self.dict_input_pin_coord[(i, j)].append((x, yj - 0.2*self.scale_factor))
-                    self.dict_input_pin_coord[(i, j)].append((x, yj + 0.2*self.scale_factor))
-                    self.dict_input_pin_coord[(i, j)].append((x, yj + 0.6*self.scale_factor))
+                    self.dict_input_pin_coord[(i, j)].append((x, yj - 0.6*z*self.scale_factor))
+                    self.dict_input_pin_coord[(i, j)].append((x, yj - 0.2*z*self.scale_factor))
+                    self.dict_input_pin_coord[(i, j)].append((x, yj + 0.2*z*self.scale_factor))
+                    self.dict_input_pin_coord[(i, j)].append((x, yj + 0.6*z*self.scale_factor))
 
         '''
         Create dictionary to record the coordinate of the output pins
@@ -116,13 +119,13 @@ class ButterflyNet(object):
                 self.dict_output_pin_coord[(i, j)] = []
                 
                 if self.type_list[i] == 2:
-                    self.dict_output_pin_coord[(i, j)].append((x, yj - 0.2*self.scale_factor))
-                    self.dict_output_pin_coord[(i, j)].append((x, yj + 0.2*self.scale_factor))
+                    self.dict_output_pin_coord[(i, j)].append((x, yj - 0.2*z*self.scale_factor))
+                    self.dict_output_pin_coord[(i, j)].append((x, yj + 0.2*z*self.scale_factor))
                 else:
-                    self.dict_output_pin_coord[(i, j)].append((x, yj - 0.6*self.scale_factor))
-                    self.dict_output_pin_coord[(i, j)].append((x, yj - 0.2*self.scale_factor))
-                    self.dict_output_pin_coord[(i, j)].append((x, yj + 0.2*self.scale_factor))
-                    self.dict_output_pin_coord[(i, j)].append((x, yj + 0.6*self.scale_factor))
+                    self.dict_output_pin_coord[(i, j)].append((x, yj - 0.6*z*self.scale_factor))
+                    self.dict_output_pin_coord[(i, j)].append((x, yj - 0.2*z*self.scale_factor))
+                    self.dict_output_pin_coord[(i, j)].append((x, yj + 0.2*z*self.scale_factor))
+                    self.dict_output_pin_coord[(i, j)].append((x, yj + 0.6*z*self.scale_factor))
 
 
     def get_pin_pairs(self):
@@ -134,24 +137,25 @@ class ButterflyNet(object):
         list_uni_pairs = [[] for i in range(self.n_stage-1)]
         # create (uniSrcId, uniDstId) tuples as pin pairs
         for i in range(self.n_stage-1):
-            # traverse across all ports from i_th stage
             pre_span = self.n_port // math.prod(self.type_list[0:i])
             cur_span = self.n_port // math.prod(self.type_list[0:i+1])
 
-            for j in range(self.n_port):
-                rank = (j%pre_span) // cur_span
+            # traverse across all switch nodes from i_th stage
+            n_ports = self.type_list[i]
+            n_nodes = self.n_port // n_ports
+            for j in range(n_nodes):
+                uniId_ofst = j*n_ports // pre_span * pre_span
+                for k in range(n_ports):
+                    uniSrcId = j*n_ports + k
+                    rank = (uniSrcId%pre_span) // cur_span
+                    if k == rank:
+                        fxPortId = k
 
-                srcSwId = j // self.type_list[i]
-                srcPortId = j % self.type_list[i]
+                for l in range(n_ports):
+                    uniSrcId = j*n_ports + (fxPortId+l)%n_ports
+                    uniDstId = uniId_ofst + (j*n_ports+fxPortId + cur_span*l) % pre_span
 
-                if srcPortId == rank:
-                    uniDstId = j
-                elif srcPortId < rank:
-                    uniDstId = srcSwId*self.type_list[i] + rank - (rank-srcPortId)*cur_span
-                elif srcPortId > rank:
-                    uniDstId = srcSwId*self.type_list[i] + rank + (srcPortId-rank)*cur_span
-
-                list_uni_pairs[i].append((j, uniDstId))
+                    list_uni_pairs[i].append((uniSrcId, uniDstId))
 
         # print(list_uni_pairs)
 
@@ -178,9 +182,9 @@ class ButterflyNet(object):
 
     def create_canvas(self):
         '''
-        In 2K monitor definition baseline, canvas size is 2160 (Width) * 1280 (Height) in pixels
+        In 2K monitor definition baseline, canvas size is 1280 (Width) * 2160 (Height) in pixels
         '''
-        Width = 192.0 * self.scale_factor
+        Width = 216.0 * self.scale_factor
         Height= 128.0 * self.scale_factor
 
         plt.figure(figsize=[Width, Height], dpi=10)
@@ -204,8 +208,9 @@ class ButterflyNet(object):
         list_edge_d_pairs = [[] for i in range(self.n_stage)]
 
         hw = self.Node_width / 2
-        hqw = hw * 1.5
+        z = self.zoom_factor
 
+        hqw = hw * 1.5
         for i in range(self.n_stage):
             # switch node travseral: stage i, j_th node
             n_nodes = self.n_port // self.type_list[i]        
@@ -214,15 +219,15 @@ class ButterflyNet(object):
             for j in range(n_nodes):
                 yj = self.dict_central_point_coord[(i, j)][1]
                 if self.type_list[i] == 2:
-                    list_edge_a_pairs[i].append([(xi-hw, yj-0.4*self.scale_factor), (xi+hw, yj-0.4*self.scale_factor)])
-                    list_edge_b_pairs[i].append([(xi-hw, yj+0.4*self.scale_factor), (xi+hw, yj+0.4*self.scale_factor)])
-                    list_edge_c_pairs[i].append([(xi-hw, yj-0.4*self.scale_factor), (xi-hw, yj+0.4*self.scale_factor)])
-                    list_edge_d_pairs[i].append([(xi+hw, yj-0.4*self.scale_factor), (xi+hw, yj+0.4*self.scale_factor)])
+                    list_edge_a_pairs[i].append([(xi-hw, yj-0.4*z*self.scale_factor), (xi+hw, yj-0.4*z*self.scale_factor)])
+                    list_edge_b_pairs[i].append([(xi-hw, yj+0.4*z*self.scale_factor), (xi+hw, yj+0.4*z*self.scale_factor)])
+                    list_edge_c_pairs[i].append([(xi-hw, yj-0.4*z*self.scale_factor), (xi-hw, yj+0.4*z*self.scale_factor)])
+                    list_edge_d_pairs[i].append([(xi+hw, yj-0.4*z*self.scale_factor), (xi+hw, yj+0.4*z*self.scale_factor)])
                 else:
-                    list_edge_a_pairs[i].append([(xi-hw, yj-0.8*self.scale_factor), (xi+hw, yj-0.8*self.scale_factor)])
-                    list_edge_b_pairs[i].append([(xi-hw, yj+0.8*self.scale_factor), (xi+hw, yj+0.8*self.scale_factor)])
-                    list_edge_c_pairs[i].append([(xi-hw, yj-0.8*self.scale_factor), (xi-hw, yj+0.8*self.scale_factor)])
-                    list_edge_d_pairs[i].append([(xi+hw, yj-0.8*self.scale_factor), (xi+hw, yj+0.8*self.scale_factor)])
+                    list_edge_a_pairs[i].append([(xi-hw, yj-0.8*z*self.scale_factor), (xi+hw, yj-0.8*z*self.scale_factor)])
+                    list_edge_b_pairs[i].append([(xi-hw, yj+0.8*z*self.scale_factor), (xi+hw, yj+0.8*z*self.scale_factor)])
+                    list_edge_c_pairs[i].append([(xi-hw, yj-0.8*z*self.scale_factor), (xi-hw, yj+0.8*z*self.scale_factor)])
+                    list_edge_d_pairs[i].append([(xi+hw, yj-0.8*z*self.scale_factor), (xi+hw, yj+0.8*z*self.scale_factor)])
 
         # create coordinate pairs for i/o pins of switch nodes
         list_input_pin_pairs = [[] for i in range(self.n_stage)]
@@ -236,28 +241,28 @@ class ButterflyNet(object):
             for j in range(n_nodes):
                 yj = self.dict_central_point_coord[(i, j)][1]
                 if self.type_list[i] == 2:
-                    list_input_pin_pairs[i].append([(xi-hqw, yj-0.2*self.scale_factor), (xi-hw, yj-0.2*self.scale_factor)])
-                    list_input_pin_pairs[i].append([(xi-hqw, yj+0.2*self.scale_factor), (xi-hw, yj+0.2*self.scale_factor)])
+                    list_input_pin_pairs[i].append([(xi-hqw, yj-0.2*z*self.scale_factor), (xi-hw, yj-0.2*z*self.scale_factor)])
+                    list_input_pin_pairs[i].append([(xi-hqw, yj+0.2*z*self.scale_factor), (xi-hw, yj+0.2*z*self.scale_factor)])
 
-                    list_output_pin_pairs[i].append([(xi+hw, yj-0.2*self.scale_factor), (xi+hqw, yj-0.2*self.scale_factor)])
-                    list_output_pin_pairs[i].append([(xi+hw, yj+0.2*self.scale_factor), (xi+hqw, yj+0.2*self.scale_factor)])
+                    list_output_pin_pairs[i].append([(xi+hw, yj-0.2*z*self.scale_factor), (xi+hqw, yj-0.2*z*self.scale_factor)])
+                    list_output_pin_pairs[i].append([(xi+hw, yj+0.2*z*self.scale_factor), (xi+hqw, yj+0.2*z*self.scale_factor)])
                 else:
-                    list_input_pin_pairs[i].append([(xi-hqw, yj-0.6*self.scale_factor), (xi-hw, yj-0.6*self.scale_factor)])
-                    list_input_pin_pairs[i].append([(xi-hqw, yj-0.2*self.scale_factor), (xi-hw, yj-0.2*self.scale_factor)])
-                    list_input_pin_pairs[i].append([(xi-hqw, yj+0.2*self.scale_factor), (xi-hw, yj+0.2*self.scale_factor)])
-                    list_input_pin_pairs[i].append([(xi-hqw, yj+0.6*self.scale_factor), (xi-hw, yj+0.6*self.scale_factor)])
+                    list_input_pin_pairs[i].append([(xi-hqw, yj-0.6*z*self.scale_factor), (xi-hw, yj-0.6*z*self.scale_factor)])
+                    list_input_pin_pairs[i].append([(xi-hqw, yj-0.2*z*self.scale_factor), (xi-hw, yj-0.2*z*self.scale_factor)])
+                    list_input_pin_pairs[i].append([(xi-hqw, yj+0.2*z*self.scale_factor), (xi-hw, yj+0.2*z*self.scale_factor)])
+                    list_input_pin_pairs[i].append([(xi-hqw, yj+0.6*z*self.scale_factor), (xi-hw, yj+0.6*z*self.scale_factor)])
 
-                    list_output_pin_pairs[i].append([(xi+hw, yj-0.6*self.scale_factor), (xi+hqw, yj-0.6*self.scale_factor)])
-                    list_output_pin_pairs[i].append([(xi+hw, yj-0.2*self.scale_factor), (xi+hqw, yj-0.2*self.scale_factor)])
-                    list_output_pin_pairs[i].append([(xi+hw, yj+0.2*self.scale_factor), (xi+hqw, yj+0.2*self.scale_factor)])
-                    list_output_pin_pairs[i].append([(xi+hw, yj+0.6*self.scale_factor), (xi+hqw, yj+0.6*self.scale_factor)])
+                    list_output_pin_pairs[i].append([(xi+hw, yj-0.6*z*self.scale_factor), (xi+hqw, yj-0.6*z*self.scale_factor)])
+                    list_output_pin_pairs[i].append([(xi+hw, yj-0.2*z*self.scale_factor), (xi+hqw, yj-0.2*z*self.scale_factor)])
+                    list_output_pin_pairs[i].append([(xi+hw, yj+0.2*z*self.scale_factor), (xi+hqw, yj+0.2*z*self.scale_factor)])
+                    list_output_pin_pairs[i].append([(xi+hw, yj+0.6*z*self.scale_factor), (xi+hqw, yj+0.6*z*self.scale_factor)])
 
         # draw edges and i/o pins
         for i in range(self.n_stage):
-            lc_edge_a = mc.LineCollection(list_edge_a_pairs[i], colors='k', linewidth=6)
-            lc_edge_b = mc.LineCollection(list_edge_b_pairs[i], colors='k', linewidth=6)
-            lc_edge_c = mc.LineCollection(list_edge_c_pairs[i], colors='k', linewidth=6)
-            lc_edge_d = mc.LineCollection(list_edge_d_pairs[i], colors='k', linewidth=6)
+            lc_edge_a = mc.LineCollection(list_edge_a_pairs[i], colors='k', linewidth=8)
+            lc_edge_b = mc.LineCollection(list_edge_b_pairs[i], colors='k', linewidth=8)
+            lc_edge_c = mc.LineCollection(list_edge_c_pairs[i], colors='k', linewidth=8)
+            lc_edge_d = mc.LineCollection(list_edge_d_pairs[i], colors='k', linewidth=8)
 
             self.ax.add_collection(lc_edge_a)
             self.ax.add_collection(lc_edge_b)
@@ -288,7 +293,7 @@ class ButterflyNet(object):
                 dst_pin_coord = self.dict_input_pin_coord[(i+1, dst_pin[0])][dst_pin[1]]
                 list_pin_pairs.append([src_pin_coord, dst_pin_coord])
 
-            lc = mc.LineCollection(list_pin_pairs, colors='b', linewidth=4)
+            lc = mc.LineCollection(list_pin_pairs, colors='b', linewidth=6)
             self.ax.add_collection(lc)
 
 
