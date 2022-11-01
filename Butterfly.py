@@ -156,8 +156,8 @@ class ButterflyNet(object):
                     uniDstId = uniId_ofst + (j*n_ports+fxPortId + cur_span*l) % pre_span
 
                     list_uni_pairs[i].append((uniSrcId, uniDstId))
-
         # print(list_uni_pairs)
+
 
         '''
         Create dictionary to record the connection pairs between output pins of i_th stage and input pins of i+1_th stage
@@ -310,8 +310,242 @@ class ButterflyNet(object):
         plt.savefig(img_fn)
 
 
+
     def gen_connect_tcl_as_file(self):
         '''
-        Generate the tcl command for automatic connection as file 
+        Generate the tcl command for automatic connection as file
+            Tcl cmd <create external ports>: make_bd_pins_external  [get_bd_pins <IP_Instance>/<Pin>]
+            Tcl cmd <rename external ports>: set_property name <new_name> [get_bd_ports <old_name>]
+            Tcl cmd <connect external ports>: connect_bd_net [get_bd_ports <ext_port>] [get_bd_pins <IP_Instance>/<Pin>]
+            Tcl cmd <connect two pins>: connect_bd_net [get_bd_pins <IP_Instance_a>/<Pin_a>] [get_bd_pins <IP_Instance_b>/<Pin_b>]
         '''
-        pass
+        assert self.tcl_fn is not None, "Output tcl command file name not specified"
+
+        self.gen_tcl_crt_rn_ext_ports() # create & rename external ports
+        self.gen_tcl_connect_clk_rst() # connect clk & rst_n signals
+
+        for stageIdx in range(self.n_stage-1):
+            self.gen_tcl_connect_consec_stages(stageIdx)
+
+
+    def gen_tcl_crt_rn_ext_ports(self):
+        
+        with open(self.tcl_fn, 'w') as file:
+            file.write('startgroup\n')
+
+            cmd_ext_clk = 'make_bd_pins_external  [get_bd_pins '+ self.pfx_list[0] +'_0/clk]\n'
+            cmd_ext_rst = 'make_bd_pins_external  [get_bd_pins '+ self.pfx_list[0] +'_0/rst_n]\n'
+            file.write(cmd_ext_clk)
+            file.write(cmd_ext_rst)
+
+            # ivld signals
+            for i in range(self.n_port):
+                if (self.type_list[0] == 2):
+                    cmd_crt_ivld = 'make_bd_pins_external  [get_bd_pins '+ self.pfx_list[0] +'_'+str(i//2)+'/ivld_'+chr(ord('a')+i%2)+']\n'
+                else:
+                    cmd_crt_ivld = 'make_bd_pins_external  [get_bd_pins '+ self.pfx_list[0] +'_'+str(i//4)+'/ivld_'+chr(ord('a')+i%4)+']\n'
+                
+                file.write(cmd_crt_ivld)
+            
+            file.write('\n')
+            
+            # din signals
+            for i in range(self.n_port):
+                if (self.type_list[0] == 2):
+                    cmd_crt_din = 'make_bd_pins_external  [get_bd_pins '+ self.pfx_list[0] +'_'+str(i//2)+'/din_'+chr(ord('a')+i%2)+']\n'
+                else:
+                    cmd_crt_din = 'make_bd_pins_external  [get_bd_pins '+ self.pfx_list[0] +'_'+str(i//4)+'/din_'+chr(ord('a')+i%4)+']\n'
+                
+                file.write(cmd_crt_din)
+            
+            file.write('\n')
+            
+            # ofw signals
+            for i in range(self.n_port):
+                if (self.type_list[0] == 2):
+                    cmd_crt_ofw = 'make_bd_pins_external  [get_bd_pins '+ self.pfx_list[0] +'_'+str(i//2)+'/ofw_input_'+chr(ord('a')+i%2)+']\n'
+                else:
+                    cmd_crt_ofw = 'make_bd_pins_external  [get_bd_pins '+ self.pfx_list[0] +'_'+str(i//4)+'/ofw_input_'+chr(ord('a')+i%4)+']\n'
+                
+                file.write(cmd_crt_ofw)
+            
+            file.write('\n')
+
+            # ovld signals
+            for i in range(self.n_port):
+                if (self.type_list[self.n_stage-1] == 2):
+                    cmd_crt_ovld = 'make_bd_pins_external  [get_bd_pins '+ self.pfx_list[self.n_stage-1] +'_'+str(i//2)+'/ovld_'+chr(ord('a')+i%2)+']\n'
+                else:
+                    cmd_crt_ovld = 'make_bd_pins_external  [get_bd_pins '+ self.pfx_list[self.n_stage-1] +'_'+str(i//4)+'/ovld_'+chr(ord('a')+i%4)+']\n'
+                
+                file.write(cmd_crt_ovld)
+            
+            file.write('\n')
+
+            # dout signals
+            for i in range(self.n_port):
+                if (self.type_list[self.n_stage-1] == 2):
+                    cmd_crt_dout = 'make_bd_pins_external  [get_bd_pins '+ self.pfx_list[self.n_stage-1] +'_'+str(i//2)+'/dout_'+chr(ord('a')+i%2)+']\n'
+                else:
+                    cmd_crt_dout = 'make_bd_pins_external  [get_bd_pins '+ self.pfx_list[self.n_stage-1] +'_'+str(i//4)+'/dout_'+chr(ord('a')+i%4)+']\n'
+                
+                file.write(cmd_crt_dout)
+            
+            file.write('\n')
+
+            # bp signals
+            for i in range(self.n_port):
+                if (self.type_list[self.n_stage-1] == 2):
+                    cmd_crt_bp = 'make_bd_pins_external  [get_bd_pins '+ self.pfx_list[self.n_stage-1] +'_'+str(i//2)+'/ofw_output_'+chr(ord('a')+i%2)+']\n'
+                else:
+                    cmd_crt_bp = 'make_bd_pins_external  [get_bd_pins '+ self.pfx_list[self.n_stage-1] +'_'+str(i//4)+'/ofw_output_'+chr(ord('a')+i%4)+']\n'
+                
+                file.write(cmd_crt_bp)
+            
+            file.write('endgroup\n\n\n')
+
+        '''
+        Rename External Ports
+        '''
+        with open(self.tcl_fn, 'a') as file:
+            file.write('startgroup\n')
+
+            cmd_ext_clk = 'set_property name clk [get_bd_ports clk_0]\n'
+            cmd_ext_rst = 'set_property name rst_n [get_bd_ports rst_n_0]\n'
+            file.write(cmd_ext_clk)
+            file.write(cmd_ext_rst)
+
+            # ivld signals
+            for i in range(self.n_port):
+                if (self.type_list[0] == 2):
+                    cmd_rn_ivld = 'set_property name ivld_'+str(i)+' [get_bd_ports ivld_'+chr(ord('a')+i%2)+'_'+str(i//2)+']\n'
+                else:
+                    cmd_rn_ivld = 'set_property name ivld_'+str(i)+' [get_bd_ports ivld_'+chr(ord('a')+i%4)+'_'+str(i//4)+']\n'
+                
+                file.write(cmd_rn_ivld)
+            
+            file.write('\n')
+
+            # din signals
+            for i in range(self.n_port):
+                if (self.type_list[0] == 2):
+                    cmd_rn_din = 'set_property name din_'+str(i)+' [get_bd_ports din_'+chr(ord('a')+i%2)+'_'+str(i//2)+']\n'
+                else:
+                    cmd_rn_din = 'set_property name din_'+str(i)+' [get_bd_ports din_'+chr(ord('a')+i%4)+'_'+str(i//4)+']\n'
+                
+                file.write(cmd_rn_din)
+            
+            file.write('\n')
+
+            # ofw signals
+            for i in range(self.n_port):
+                if (self.type_list[0] == 2):
+                    cmd_rn_ofw = 'set_property name ofw_'+str(i)+' [get_bd_ports ofw_input_'+chr(ord('a')+i%2)+'_'+str(i//2)+']\n'
+                else:
+                    cmd_rn_ofw = 'set_property name ofw_'+str(i)+' [get_bd_ports ofw_input_'+chr(ord('a')+i%4)+'_'+str(i//4)+']\n'
+                
+                file.write(cmd_rn_ofw)
+            
+            file.write('\n')
+
+
+            # ovld signals
+            for i in range(self.n_port):
+                if (self.type_list[self.n_stage-1] == 2):
+                    cmd_rn_ovld = 'set_property name ovld_'+str(i)+' [get_bd_ports ovld_'+chr(ord('a')+i%2)+'_'+str(i//2)+']\n'
+                else:
+                    cmd_rn_ovld = 'set_property name ovld_'+str(i)+' [get_bd_ports ovld_'+chr(ord('a')+i%4)+'_'+str(i//4)+']\n'
+                
+                file.write(cmd_rn_ovld)
+            
+            file.write('\n')
+
+            # dout signals
+            for i in range(self.n_port):
+                if (self.type_list[self.n_stage-1] == 2):
+                    cmd_rn_dout = 'set_property name dout_'+str(i)+' [get_bd_ports dout_'+chr(ord('a')+i%2)+'_'+str(i//2)+']\n'
+                else:
+                    cmd_rn_dout = 'set_property name dout_'+str(i)+' [get_bd_ports dout_'+chr(ord('a')+i%4)+'_'+str(i//4)+']\n'
+                
+                file.write(cmd_rn_dout)
+            
+            file.write('\n')
+
+            # bp signals
+            for i in range(self.n_port):
+                if (self.type_list[self.n_stage-1] == 2):
+                    cmd_rn_bp = 'set_property name bp_'+str(i)+' [get_bd_ports ofw_output_'+chr(ord('a')+i%2)+'_'+str(i//2)+']\n'
+                else:
+                    cmd_rn_bp = 'set_property name bp_'+str(i)+' [get_bd_ports ofw_output_'+chr(ord('a')+i%4)+'_'+str(i//4)+']\n'
+                
+                file.write(cmd_rn_bp)
+            
+            file.write('endgroup\n\n\n')
+
+
+    def gen_tcl_connect_clk_rst(self):
+
+        with open(self.tcl_fn, 'a') as file:
+
+            for i in range(self.n_stage):
+                n_nodes = self.n_port // self.type_list[i]
+                for j in range(n_nodes):
+                    if not (i==0 and j==0):
+                        cmd_clk = 'connect_bd_net [get_bd_ports clk] [get_bd_pins '+ self.pfx_list[i] +'_'+str(j)+'/clk]\n'
+                        cmd_rst = 'connect_bd_net [get_bd_ports rst_n] [get_bd_pins '+ self.pfx_list[i] +'_'+str(j)+'/rst_n]\n'
+
+                        file.write(cmd_clk)
+                        file.write(cmd_rst)
+                
+                file.write('\n')
+
+
+    def gen_tcl_connect_consec_stages(self, stageIdx):
+        '''
+        Connect pins between stage stageIdx and stageIdx+1
+        '''
+        # list of [(srcSwId, srcPortId), (dstSwId, dstPortId)] lists
+        pin_pairs = self.dict_connect_pin_pairs[(stageIdx, stageIdx+1)]
+
+        # ovld to ivld
+        with open(self.tcl_fn, 'a') as file:
+            file.write('startgroup\n')
+            for pair in pin_pairs:
+                src_pin = pair[0] # srcSwId: src_pin[0]; srcPortId: src_pin[1]
+                dst_pin = pair[1] # dstSwId: dst_pin[0]; dstPortId: dst_pin[1]
+
+                cmd = 'connect_bd_net [get_bd_pins '+self.pfx_list[stageIdx]+'_'+str(src_pin[0])+'/ovld_'+chr(ord('a')+src_pin[1])+'] ' \
+				'[get_bd_pins '+self.pfx_list[stageIdx+1]+'_'+str(dst_pin[0])+'/ivld_'+chr(ord('a')+dst_pin[1])+']\n'
+
+                file.write(cmd)
+
+            file.write('\n')
+
+        # dout to din
+        with open(self.tcl_fn, 'a') as file:
+            for pair in pin_pairs:
+                src_pin = pair[0] # srcSwId: src_pin[0]; srcPortId: src_pin[1]
+                dst_pin = pair[1] # dstSwId: dst_pin[0]; dstPortId: dst_pin[1]
+
+                cmd = 'connect_bd_net [get_bd_pins '+self.pfx_list[stageIdx]+'_'+str(src_pin[0])+'/dout_'+chr(ord('a')+src_pin[1])+'] ' \
+				'[get_bd_pins '+self.pfx_list[stageIdx+1]+'_'+str(dst_pin[0])+'/din_'+chr(ord('a')+dst_pin[1])+']\n'
+
+                file.write(cmd)
+
+            file.write('\n')
+
+        # ofw_input to ofw_output
+        with open(self.tcl_fn, 'a') as file:
+            for pair in pin_pairs:
+                src_pin = pair[0] # srcSwId: src_pin[0]; srcPortId: src_pin[1]
+                dst_pin = pair[1] # dstSwId: dst_pin[0]; dstPortId: dst_pin[1]
+
+                cmd = 'connect_bd_net [get_bd_pins '+self.pfx_list[stageIdx]+'_'+str(src_pin[0])+'/ofw_output_'+chr(ord('a')+src_pin[1])+'] ' \
+				'[get_bd_pins '+self.pfx_list[stageIdx+1]+'_'+str(dst_pin[0])+'/ofw_input_'+chr(ord('a')+dst_pin[1])+']\n'
+
+                file.write(cmd)
+
+            file.write('\n')
+            
+            file.write('endgroup\n\n')
+

@@ -9,7 +9,7 @@ def check_args(args):
     '''
     Check if the input args from cmd line is legal
     '''
-    # check n_stage & type_list
+    # check n_stage & type_list & pfx_list
     assert args.n_stage == len(args.type_list), "Number of stages does not match the length of switch nodes type list"
     if args.pfx_list is not None:
         assert args.n_stage == len(args.pfx_list), "Number of stages does not match the length of switch nodes prefix name list"
@@ -21,6 +21,7 @@ def check_args(args):
     # check type_list & n_port
     product = math.prod(args.type_list)
     assert args.n_port == product, "Number of i/o ports derived from type_list does not match input argument n_port"
+    assert args.n_port <= 256, "Invalid argument: n_port, supported number of ports should be no greater than 256"
 
     # check monitor definition
     assert args.monitor_def[0] >= 1280 and args.monitor_def[0] <= 3840, "Invalid monitor width, allowed range is 1280 to 3840"
@@ -50,7 +51,8 @@ def main():
         tcl_fn=args.tcl_fn
         )
 
-    bfNet.save_network_image()
+    # bfNet.save_network_image()
+    bfNet.gen_connect_tcl_as_file()
 
 if __name__ == '__main__':
     main()
